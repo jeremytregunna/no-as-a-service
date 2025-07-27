@@ -1,0 +1,12 @@
+[project]
+name = "no"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.116.1",
+    "uvicorn>=0.32.0",
+    "pytest>=8.0.0",
+    "httpx>=0.25.0",
+]
