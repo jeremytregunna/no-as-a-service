@@ -1,10 +1,9 @@
-import pytest
 import json
 from fastapi.testclient import TestClient
 from markov import MarkovChain
 from main import app
 
-# Load training data for tests
+# training data
 with open("reasons.json", "r") as f:
     TRAINING_PHRASES = json.load(f)
 
@@ -21,9 +20,12 @@ class TestMarkovChain:
 
     def test_markov_chain_training(self):
         chain = MarkovChain(order=2)
-        test_phrases = ["Hello world friend", "Hello there friend", "World peace now"]
+        test_phrases = [
+            "Hello world friend",
+            "Hello there friend",
+            "World peace now"
+        ]
         chain.train(test_phrases)
-        
         assert chain.is_trained()
         assert len(chain.start_words) > 0
         assert len(chain.chain) > 0
@@ -31,7 +33,6 @@ class TestMarkovChain:
     def test_markov_chain_generation(self):
         chain = MarkovChain(order=2)
         chain.train(TRAINING_PHRASES)
-        
         generated = chain.generate(max_length=10)
         assert isinstance(generated, str)
         assert len(generated) > 0
@@ -46,8 +47,6 @@ class TestMarkovChain:
         chain = MarkovChain(order=3)
         short_phrases = ["No", "Nope"]  # Shorter than order
         chain.train(short_phrases)
-        
-        # Should not crash and should not add anything
         assert not chain.is_trained()
 
 
@@ -69,7 +68,7 @@ class TestAPI:
         assert len(data["response"]) > 0
 
     def test_multiple_nos_endpoint_default(self):
-        response = client.get("/no/multiple")
+        response = client.get("/nos")
         assert response.status_code == 200
         data = response.json()
         assert "responses" in data
@@ -79,24 +78,24 @@ class TestAPI:
         assert all(isinstance(resp, str) for resp in data["responses"])
 
     def test_multiple_nos_endpoint_with_count(self):
-        response = client.get("/no/multiple?count=3")
+        response = client.get("/nos?count=3")
         assert response.status_code == 200
         data = response.json()
         assert data["count"] == 3
         assert len(data["responses"]) == 3
 
     def test_multiple_nos_endpoint_count_limit(self):
-        response = client.get("/no/multiple?count=25")
+        response = client.get("/nos?count=25")
         assert response.status_code == 200
         data = response.json()
-        assert data["count"] == 20  # Should be limited to 20
+        assert data["count"] == 20  # round down to a max of 20
         assert len(data["responses"]) == 20
 
     def test_multiple_nos_endpoint_minimum_count(self):
-        response = client.get("/no/multiple?count=0")
+        response = client.get("/nos?count=0")
         assert response.status_code == 200
         data = response.json()
-        assert data["count"] == 1  # Should be at least 1
+        assert data["count"] == 1
         assert len(data["responses"]) == 1
 
     def test_health_endpoint(self):
@@ -113,19 +112,16 @@ class TestAPI:
 
 class TestIntegration:
     def test_api_generates_different_responses(self):
-        # Test that multiple calls to /no generate different responses
         responses = []
+        # test unique responses
         for _ in range(10):
             response = client.get("/no")
             data = response.json()
             responses.append(data["response"])
-        
-        # With a good Markov chain, we should get some variety
         unique_responses = set(responses)
         assert len(unique_responses) > 1, "Should generate varied responses"
 
     def test_training_data_is_valid(self):
-        # Ensure all training phrases are strings and non-empty
         assert len(TRAINING_PHRASES) > 0
         for phrase in TRAINING_PHRASES:
             assert isinstance(phrase, str)
@@ -133,31 +129,27 @@ class TestIntegration:
             assert phrase.strip() != ""
 
     def test_api_responses_are_reasonable_length(self):
-        # Test that generated responses aren't too long or too short
         for _ in range(5):
             response = client.get("/no")
             data = response.json()
             response_text = data["response"]
             word_count = len(response_text.split())
-            assert 1 <= word_count <= 20, f"Response too long/short: {response_text}"
+            assert 1 <= word_count <= 20, f"Response too long/short: {
+                response_text}"
 
     def test_generation_time_header(self):
-        # Test that generation time header is present and valid
         response = client.get("/no")
         assert response.status_code == 200
         assert "X-Generation-Time-Ms" in response.headers
-        
         time_str = response.headers["X-Generation-Time-Ms"]
         time_float = float(time_str)
         assert time_float >= 0, "Generation time should be non-negative"
         assert time_float < 1000, "Generation time should be reasonable (< 1 second)"
 
     def test_multiple_generation_time_header(self):
-        # Test that generation time header works for multiple endpoint
-        response = client.get("/no/multiple?count=3")
+        response = client.get("/nos?count=3")
         assert response.status_code == 200
         assert "X-Generation-Time-Ms" in response.headers
-        
         time_str = response.headers["X-Generation-Time-Ms"]
         time_float = float(time_str)
         assert time_float >= 0, "Generation time should be non-negative"

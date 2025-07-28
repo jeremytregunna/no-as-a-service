@@ -10,3 +10,8 @@ dependencies = [
     "pytest>=8.0.0",
     "httpx>=0.25.0",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.12.5",
+]

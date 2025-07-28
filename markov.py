@@ -15,12 +15,12 @@ class MarkovChain:
             if len(words) < self.order + 1:  # Need at least order+1 words
                 continue
 
-            start_gram = tuple(words[:self.order])
+            start_gram = tuple(words[: self.order])
             self.start_words.append(start_gram)
 
             # Build the chain
             for i in range(len(words) - self.order):
-                current_gram = tuple(words[i:i + self.order])
+                current_gram = tuple(words[i : i + self.order])
                 next_word = words[i + self.order]
                 self.chain[current_gram].append(next_word)
 
@@ -39,7 +39,7 @@ class MarkovChain:
             result.append(next_word)
 
             # Update current_gram to slide the window
-            current_gram = tuple(result[-self.order:])
+            current_gram = tuple(result[-self.order :])
 
         return " ".join(result)
 

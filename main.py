@@ -1,5 +1,4 @@
 from fastapi import FastAPI, Response
-from typing import List
 import uvicorn
 import time
 
@@ -9,7 +8,7 @@ from markov import MarkovChain
 app = FastAPI(
     title="No as a Service",
     description="Generate creative ways to say no using Markov chains",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # Load training data from reasons.json
@@ -28,9 +27,9 @@ async def root():
         "description": "Generate creative ways to say no",
         "endpoints": {
             "/no": "Get a single creative way to say no",
-            "/no/multiple": "Get multiple creative ways to say no",
-            "/health": "Check if the service is running"
-        }
+            "/nos": "Get multiple creative ways to say no",
+            "/health": "Check if the service is running",
+        },
     }
 
 
@@ -39,14 +38,14 @@ async def get_no(response: Response):
     start_time = time.perf_counter()
     generated_text = markov.generate(max_length=20)
     end_time = time.perf_counter()
-    
+
     generation_time_ms = (end_time - start_time) * 1000
     response.headers["X-Generation-Time-Ms"] = f"{generation_time_ms:.3f}"
-    
+
     return {"response": generated_text}
 
 
-@app.get("/no/multiple")
+@app.get("/nos")
 async def get_multiple_nos(response: Response, count: int = 5):
     if count > 20:
         count = 20  # Limit to prevent abuse
@@ -58,14 +57,11 @@ async def get_multiple_nos(response: Response, count: int = 5):
     for _ in range(count):
         responses.append(markov.generate(max_length=20))
     end_time = time.perf_counter()
-    
+
     generation_time_ms = (end_time - start_time) * 1000
     response.headers["X-Generation-Time-Ms"] = f"{generation_time_ms:.3f}"
 
-    return {
-        "responses": responses,
-        "count": len(responses)
-    }
+    return {"responses": responses, "count": len(responses)}
 
 
 @app.get("/health")
@@ -73,7 +69,7 @@ async def health_check():
     return {
         "status": "healthy",
         "markov_trained": markov.is_trained(),
-        "training_phrases_count": len(TRAINING_PHRASES)
+        "training_phrases_count": len(TRAINING_PHRASES),
     }
 
 
